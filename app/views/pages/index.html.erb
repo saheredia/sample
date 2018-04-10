@@ -1,0 +1,160 @@
+<%
+
+  # @author     Allware Ltda. (http://www.allware.cl)
+  # @copyright  2016 Transbank S.A. (http://www.transbank.cl)
+  # @date       Aug 2016
+  # @license    GNU LGPL
+  # @version    1.0
+
+  require 'ewallet'
+  #require_relative '../../../../libonepay/lib/ewallet.rb'
+  begin
+
+    urlLogin = "https://onepay.ionix.cl/tbk-ewallet-payment-login/";
+    callbackUrl = request.base_url + "/pages/endpayment";
+
+    # Verificamos dispositivo (iPhone, Android, Web)
+    if request.user_agent.downcase.match(/iphone/)
+      userAgent = "iPhone"
+      channel = "MOBILE"
+
+    elsif request.user_agent.downcase.match(/android/)
+      userAgent = "Android"
+      channel = "MOBILE"
+    else
+      userAgent = "Web"
+      channel = "WEB"
+    end
+
+    appKey = "760272c4-9950-4bf3-be16-a6729800231a";
+    apiKey = "dKVhq1WGt_XapIYirTXNyUKoWTDFfxaEV63-O5jcsdw";
+    secret = "?XW#WOLG##FBAGEAYSNQ5APD#JF@$AYZ";
+    environment = "INTEGRACION";
+
+    config = EwalletConfiguration.new(environment, appKey, apiKey, secret)
+    ew = Ewallet.new(config)
+
+    item = {
+        "description" => "Producto autogenerado",
+        "quantity" => "1",
+        "amount" => "100",
+        "additionalData" => "0",
+        "expire" => "0",
+    }
+
+    request = {
+        "appKey" => config.appKey,
+        "apiKey" => config.apiKey,
+        "externalUniqueNumber" => rand(10000),
+        "total" => "100",
+        "itemsQuantity" => "1",
+        "items" => item,
+        "callbackUrl" => callbackUrl,
+        "channel" => channel
+    }
+
+    result = ew.createTransaction(request["externalUniqueNumber"], request["total"], request["itemsQuantity"], request["items"], request["channel"], request["callbackUrl"])
+
+  rescue
+
+    result = {
+      "responseCode" => "ERROR",
+      "description" => "Ocurrio un error inesperado",
+      "result" => @error_message="#{$!}",
+   }
+
+  end
+
+
+%>
+
+<html>
+<body>
+
+<h1>Ejemplo OnePay</h1>
+<h2>step: createTransaction</h2>
+<h5>Dispositivo: <%= userAgent %></h5>
+<div style="background-color:lightyellow;">
+  <h3>request</h3>
+  <%= request.to_s %>
+  <br/><br/>
+</div>
+<div style="background-color:lightgrey;">
+  <h3>result</h3>
+  <%= result.to_s %>
+  <br/><br/>
+</div>
+<br/>
+
+<%
+  if (result["responseCode"] == "OK")
+
+%>
+    <h5>Transacci&oacute;n ACEPTADA por OnePay</h5>
+    <%
+      if (userAgent == "Android")
+    %>
+        <input type="button" value="OnePay" onclick="androidContextChange();">
+        <script type="text/javascript">
+          function androidContextChange() {
+            var appScheme = 'ewallet'; /* Scheme de la aplicación */
+            var appPackage = 'cl.ionix.ewallet'; /* Nombre del package de la aplicación */
+            var action = appPackage + '.BROWSER_ACTION';
+
+            /* Url de Google Play de la aplicación */
+            var fallback = 'market://details?id=' + appPackage;
+
+            /* Construcción de la url de apertura de la aplicación */
+            var location = 'intent://#Intent' +
+                ';scheme=' + appScheme +
+                ';action=' + action +
+                ';package=' + appPackage +
+                ';S.occ=' + <%= result["result"]["occ"] %> +
+                    ';S.browser_fallback_url=' + fallback +
+                ';end';
+
+            /* Apertura de la aplicación */
+            window.location = location;
+          }
+
+        </script>
+    <%
+      elsif (userAgent == "iPhone")
+    %>
+        <input type="button" value="OnePay" onclick="iosContextChange();">
+        <script type="text/javascript">
+          function iosContextChange() {
+            var appName = 'onepay';
+            var appStoreUrl = 'https://itunes.apple.com/cl/app/onepay/id1218407961';
+            var now = new Date().valueOf();
+            /* Fix para enviar al usuario a la appstore a descargar la aplicación si no la encuentra */
+            setTimeout(function () {
+              if (new Date().valueOf() - now > 100) return;
+              window.open(appStoreUrl, "_self");
+            }, 500);
+
+            /* Apertura de la aplicación */
+            window.open(appName + '://?occ=' +<%= result["result"]["occ"] %>, '_self');
+          }
+        </script>
+    <%
+      else
+    %>
+
+        <form id="testform" method="get" action="<%= urlLogin %>">
+          <input type="hidden" id="occ" name="occ" value="<%= result["result"]["occ"] %>">
+          <input type="hidden" id="apiKey" name="apiKey" value="<%= config.apiKey %>">
+          <input type="submit" name="onepay" value="OnePay">
+        </form>
+
+    <%
+      end
+      else
+    %>
+    <h5>Transacci&oacute;n RECHAZADA por OnePay</h5>
+    <a href='index.aspx'>&laquo; volver a index</a>
+<%
+  end
+%>
+</body>
+</html>

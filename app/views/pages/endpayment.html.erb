@@ -1,0 +1,96 @@
+<%
+
+  # @author     Allware Ltda. (http://www.allware.cl)
+  # @copyright  2016 Transbank S.A. (http://www.transbank.cl)
+  # @date       Aug 2016
+  # @license    GNU LGPL
+  # @version    1.0
+
+  require 'ewallet'
+  # require_relative '../../../../libonepay/lib/ewallet.rb'
+
+  begin
+
+    urlLogin = request.base_url + "/pages/nullify";
+
+    appKey = "760272c4-9950-4bf3-be16-a6729800231a";
+    apiKey = "dKVhq1WGt_XapIYirTXNyUKoWTDFfxaEV63-O5jcsdw";
+    secret = "?XW#WOLG##FBAGEAYSNQ5APD#JF@$AYZ";
+    environment = "INTEGRACION";
+
+    config = EwalletConfiguration.new(environment, appKey, apiKey, secret)
+    ew = Ewallet.new(config)
+
+    if (params[:status] != "TIMEOUT")
+
+      occ = params[:occ]
+      externalUniqueNumber = params[:externalUniqueNumber];
+
+      request = {
+          "occ" => occ,
+          "externalUniqueNumber" => externalUniqueNumber,
+      }
+
+      result = ew.getTransactionNumber(occ, externalUniqueNumber);
+
+     else
+
+        result = {
+            "occ" =>  params[:occ],
+            "externalUniqueNumber" =>  params[:externalUniqueNumber],
+            "status" => params[:status],
+        }
+
+     end
+
+  rescue
+
+      result = {
+        "responseCode" => "ERROR",
+        "description" => "Ocurrio un error inesperado",
+        "result" => @error_message="#{$!}",
+     }
+
+  end
+
+%>
+
+<html>
+<body>
+<h1>Ejemplo OnePay</h1>
+<h2>step: getTransactionNumber</h2>
+<div style="background-color:lightyellow;">
+  <h3>request</h3>
+  <%= request.to_s %>
+  <br/><br/>
+</div>
+<div style="background-color:lightgrey;">
+  <h3>result</h3>
+  <%= result.to_s %>
+  <br/><br/>
+</div>
+<br/>
+<%
+  if (result["description"] == "OK")
+
+%>
+    <h5>Transacci&oacute;n ACEPTADA por OnePay</h5>
+    <form id="testform" method="post" action="<%= urlLogin %>">
+      <input type="hidden" id="externalUniqueNumber" name="externalUniqueNumber" value="<%= request["externalUniqueNumber"] %>">
+      <input type="hidden" id="occ" name="occ" value="<%= result["result"]["occ"] %>">
+      <input type="hidden" id="authorizationCode" name="authorizationCode" value="<%= result["result"]["authorizationCode"] %>">
+      <input type="hidden" id="nullifyAmount" name="nullifyAmount" value="<%= result["result"]["amount"] %>">
+      <input type="submit" name="onepay" value="Anular Transacci&oacute;n">
+    </form>
+    <br/>
+    <a href='index.aspx'>&laquo; volver a index</a>
+<%
+  else
+%>
+    <h5>Transacci&oacute;n RECHAZADA por OnePay</h5>
+    <a href='index.aspx'>&laquo; volver a index</a>
+<%
+  end
+%>
+</body>
+</html>

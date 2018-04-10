@@ -1,0 +1,76 @@
+<%
+
+  # @author     Allware Ltda. (http://www.allware.cl)
+  # @copyright  2016 Transbank S.A. (http://www.transbank.cl)
+  # @date       Aug 2016
+  # @license    GNU LGPL
+  # @version    1.0
+
+  require 'ewallet'
+  # require_relative '../../../../libonepay/lib/ewallet.rb'
+
+  begin
+
+    appKey = "760272c4-9950-4bf3-be16-a6729800231a";
+    apiKey = "dKVhq1WGt_XapIYirTXNyUKoWTDFfxaEV63-O5jcsdw";
+    secret = "?XW#WOLG##FBAGEAYSNQ5APD#JF@$AYZ";
+    environment = "INTEGRACION";
+
+    config = EwalletConfiguration.new(environment, appKey, apiKey, secret)
+    ew = Ewallet.new(config)
+
+    occ = params[:occ]
+    externalUniqueNumber = params[:externalUniqueNumber];
+    authorizationCode = params[:authorizationCode]
+    nullifyAmount = params[:nullifyAmount];
+
+    request = {
+        "occ" => occ,
+        "externalUniqueNumber" => externalUniqueNumber,
+        "authorizationCode" => authorizationCode,
+        "nullifyAmount" => nullifyAmount,
+    }
+
+    result = ew.nullifyTransaction(occ, externalUniqueNumber, authorizationCode, nullifyAmount);
+
+  rescue
+
+    result = {
+      "responseCode" => "ERROR",
+      "description" => "Ocurrio un error inesperado",
+      "result" => @error_message="#{$!}",
+    }
+
+  end
+
+%>
+
+<html>
+<body>
+<h1>Ejemplo OnePay</h1>
+<h2>step: nullify</h2>
+<div style="background-color:lightyellow;">
+  <h3>request</h3>
+  <%= request.to_s %>
+  <br/><br/>
+</div>
+<div style="background-color:lightgrey;">
+  <h3>result</h3>
+  <%= result.to_s %>
+  <br/><br/>
+</div>
+<br/>
+<% if (result["description"] == "OK")
+%>
+    <h5>Transacci&oacute;n ACEPTADA por OnePay</h5>
+    <a href='index.aspx'>&laquo; volver a index</a>
+<%
+  else
+%>
+    <h5>Transacci&oacute;n RECHAZADA por OnePay</h5>
+    <a href='index.aspx'>&laquo; volver a index</a>
+<%
+  end
+%>
+</body>
+</html>
